@@ -1,0 +1,306 @@
+-- DBMS Task 1 - Simplified code (Slips 1 to 22)
+-- Run first:  SET SERVEROUTPUT ON;
+-- Every PL/SQL block ends with /  on its own line.
+-- Functions and procedures are written INSIDE one anonymous block (DECLARE section),
+-- so definition + calling is done in a single run.
+
+SET SERVEROUTPUT ON;
+
+------------------------------------------------------------
+-- SLIP 1 : Even numbers 1 to 20
+------------------------------------------------------------
+BEGIN
+  FOR i IN 1..20 LOOP
+    IF MOD(i, 2) = 0 THEN
+      DBMS_OUTPUT.PUT_LINE(i);
+    END IF;
+  END LOOP;
+END;
+/
+
+------------------------------------------------------------
+-- SLIP 2 : Emp(Empno, Ename, job, mgr, joindate, salary, comm, deptno)
+------------------------------------------------------------
+-- i)
+SELECT * FROM emp WHERE salary >= 5000;
+-- ii)
+SELECT * FROM emp WHERE job IN ('Manager', 'Analyst');
+-- iii)
+UPDATE dept SET loc = 'Pune' WHERE deptno = 40;
+-- iv)
+SELECT ename, salary FROM emp WHERE salary > 50000 AND deptno IN (10, 30);
+
+------------------------------------------------------------
+-- SLIP 3 : Employee(emp_id, emp_name, emp_city, emp_addr, emp_dept, join_date)
+------------------------------------------------------------
+-- i)
+SELECT emp_id FROM employee WHERE emp_city IN ('Pune', 'Nagpur');
+-- ii)
+SELECT * FROM employee WHERE join_date > '02-JUL-2007';
+-- iii)
+UPDATE employee SET emp_name = 'Aarav' WHERE emp_name = 'Ajit';
+-- iv)
+SELECT COUNT(*) FROM employee WHERE emp_dept = '50';
+
+------------------------------------------------------------
+-- SLIP 4 : EMP(empno, ename, mgr, hiredate, sal, deptno)
+------------------------------------------------------------
+-- i)
+SELECT ename, sal, deptno FROM emp;
+-- ii)
+SELECT empno, ename, hiredate FROM emp WHERE sal < 5000 AND deptno = 20;
+-- iii)
+ALTER TABLE emp ADD (city CHAR(20));
+-- iv)  (last value deptno = 30 assumed, use the one in your paper)
+INSERT INTO emp (empno, ename, mgr, hiredate, sal, deptno)
+VALUES (7788, 'Asha', 7566, '10-JUL-1999', 30000, 30);
+
+------------------------------------------------------------
+-- SLIP 5 : Employee table
+------------------------------------------------------------
+-- i)
+SELECT UPPER(emp_name) FROM employee;
+-- ii)
+SELECT emp_id FROM employee WHERE emp_city IN ('Pune', 'Mumbai');
+-- iii)
+SELECT * FROM employee WHERE join_date > '01-APR-1997';
+-- iv)
+SELECT COUNT(*) FROM employee WHERE emp_dept = '10';
+
+------------------------------------------------------------
+-- SLIP 6 : Factorial of a number
+------------------------------------------------------------
+DECLARE
+  n NUMBER := &n;
+  f NUMBER := 1;
+BEGIN
+  FOR i IN 1..n LOOP
+    f := f * i;
+  END LOOP;
+  DBMS_OUTPUT.PUT_LINE('Factorial of ' || n || ' is ' || f);
+END;
+/
+
+------------------------------------------------------------
+-- SLIP 7 : Largest of three numbers
+------------------------------------------------------------
+DECLARE
+  a NUMBER := &a;
+  b NUMBER := &b;
+  c NUMBER := &c;
+BEGIN
+  DBMS_OUTPUT.PUT_LINE('Largest number is ' || GREATEST(a, b, c));
+END;
+/
+
+------------------------------------------------------------
+-- SLIP 8 : Cursor - employees of computer department
+------------------------------------------------------------
+DECLARE
+  CURSOR c_emp IS
+    SELECT e.empno, e.ename, e.job, e.sal
+    FROM emp e, dept d
+    WHERE e.deptno = d.deptno AND d.dname = 'COMPUTER';
+BEGIN
+  FOR r IN c_emp LOOP
+    DBMS_OUTPUT.PUT_LINE(r.empno || ' ' || r.ename || ' ' || r.job || ' ' || r.sal);
+  END LOOP;
+END;
+/
+
+------------------------------------------------------------
+-- SLIP 9 : Predefined exception (ZERO_DIVIDE)
+------------------------------------------------------------
+DECLARE
+  a NUMBER := &a;
+  b NUMBER := &b;
+BEGIN
+  DBMS_OUTPUT.PUT_LINE('Result = ' || a / b);
+EXCEPTION
+  WHEN ZERO_DIVIDE THEN
+    DBMS_OUTPUT.PUT_LINE('Cannot divide by zero');
+END;
+/
+
+------------------------------------------------------------
+-- SLIP 10 : User-defined exception
+------------------------------------------------------------
+DECLARE
+  bal NUMBER := &balance;
+  low_balance EXCEPTION;
+BEGIN
+  IF bal < 1000 THEN
+    RAISE low_balance;
+  END IF;
+  DBMS_OUTPUT.PUT_LINE('Balance is sufficient');
+EXCEPTION
+  WHEN low_balance THEN
+    DBMS_OUTPUT.PUT_LINE('Balance is below minimum balance 1000');
+END;
+/
+
+------------------------------------------------------------
+-- SLIP 11 : Procedure - raise salary by 25%  (procedure + call in ONE block)
+------------------------------------------------------------
+DECLARE
+  PROCEDURE raise_sal (p_empno NUMBER) IS
+  BEGIN
+    UPDATE emp SET sal = sal * 1.25 WHERE empno = p_empno;
+    DBMS_OUTPUT.PUT_LINE('Salary of employee ' || p_empno || ' increased by 25%');
+  END;
+BEGIN
+  raise_sal(101);          -- calling
+  COMMIT;
+END;
+/
+
+------------------------------------------------------------
+-- SLIP 12 : 1 to 10 using FOR loop
+------------------------------------------------------------
+BEGIN
+  FOR i IN 1..10 LOOP
+    DBMS_OUTPUT.PUT_LINE(i);
+  END LOOP;
+END;
+/
+
+------------------------------------------------------------
+-- SLIP 13 : 1 to 10 in reverse order
+------------------------------------------------------------
+BEGIN
+  FOR i IN REVERSE 1..10 LOOP
+    DBMS_OUTPUT.PUT_LINE(i);
+  END LOOP;
+END;
+/
+
+------------------------------------------------------------
+-- SLIP 14 : emp_view
+------------------------------------------------------------
+CREATE VIEW emp_view AS
+  SELECT emp_no, e_name, salary FROM employee;
+
+UPDATE emp_view SET e_name = 'Ramesh' WHERE emp_no = 1001;
+
+------------------------------------------------------------
+-- SLIP 15 : dept_view
+------------------------------------------------------------
+CREATE VIEW dept_view AS
+  SELECT * FROM dept;
+
+INSERT INTO dept_view VALUES (50, 'PURCHASE', 'Nashik');
+
+UPDATE dept_view SET loc = 'Mumbai' WHERE deptno = 10;
+
+DROP VIEW dept_view;
+
+------------------------------------------------------------
+-- SLIP 16 : Even numbers 1 to 20 (step of 2, no IF needed)
+------------------------------------------------------------
+BEGIN
+  FOR i IN 1..10 LOOP
+    DBMS_OUTPUT.PUT_LINE(i * 2);
+  END LOOP;
+END;
+/
+
+------------------------------------------------------------
+-- SLIP 17 : Odd numbers 1 to 20
+------------------------------------------------------------
+BEGIN
+  FOR i IN 1..10 LOOP
+    DBMS_OUTPUT.PUT_LINE(i * 2 - 1);
+  END LOOP;
+END;
+/
+
+------------------------------------------------------------
+-- SLIP 18 : Procedure to insert 3 records (procedure + call in ONE block)
+------------------------------------------------------------
+DECLARE
+  PROCEDURE ins_emp IS
+  BEGIN
+    INSERT INTO emp VALUES (106, 'Kiran', 'Clerk',   3500, 10);
+    INSERT INTO emp VALUES (107, 'Neha',  'Analyst', 6500, 20);
+    INSERT INTO emp VALUES (108, 'Sagar', 'Manager', 8500, 30);
+  END;
+BEGIN
+  ins_emp;                 -- calling
+  COMMIT;
+  DBMS_OUTPUT.PUT_LINE('Three records inserted');
+END;
+/
+
+------------------------------------------------------------
+-- SLIP 19 : TOO_MANY_ROWS
+------------------------------------------------------------
+DECLARE
+  v_name emp.ename%TYPE;
+BEGIN
+  SELECT ename INTO v_name FROM emp WHERE deptno = 10;   -- returns 2 rows
+  DBMS_OUTPUT.PUT_LINE(v_name);
+EXCEPTION
+  WHEN TOO_MANY_ROWS THEN
+    DBMS_OUTPUT.PUT_LINE('TOO_MANY_ROWS: query returned more than one row');
+END;
+/
+
+------------------------------------------------------------
+-- SLIP 20 : Factorial function (function + call in ONE block)
+------------------------------------------------------------
+DECLARE
+  num NUMBER := &num;
+
+  FUNCTION fact (n NUMBER) RETURN NUMBER IS
+    f NUMBER := 1;
+  BEGIN
+    FOR i IN 1..n LOOP
+      f := f * i;
+    END LOOP;
+    RETURN f;
+  END;
+BEGIN
+  DBMS_OUTPUT.PUT_LINE('Factorial of ' || num || ' is ' || fact(num));
+END;
+/
+
+------------------------------------------------------------
+-- SLIP 21 : Function - maximum of two values (function + call in ONE block)
+------------------------------------------------------------
+DECLARE
+  x NUMBER := &x;
+  y NUMBER := &y;
+
+  FUNCTION max_of_two (a NUMBER, b NUMBER) RETURN NUMBER IS
+  BEGIN
+    IF a >= b THEN
+      RETURN a;
+    ELSE
+      RETURN b;
+    END IF;
+  END;
+BEGIN
+  DBMS_OUTPUT.PUT_LINE('Maximum is ' || max_of_two(x, y));
+END;
+/
+
+------------------------------------------------------------
+-- SLIP 22 : Factorial function (function + call in ONE block)
+------------------------------------------------------------
+DECLARE
+  num NUMBER := &num;
+
+  FUNCTION factorial (n NUMBER) RETURN NUMBER IS
+    f NUMBER := 1;
+    i NUMBER := n;
+  BEGIN
+    WHILE i > 1 LOOP
+      f := f * i;
+      i := i - 1;
+    END LOOP;
+    RETURN f;
+  END;
+BEGIN
+  DBMS_OUTPUT.PUT_LINE('Factorial of ' || num || ' is ' || factorial(num));
+END;
+/
