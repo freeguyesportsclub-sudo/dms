@@ -1,0 +1,1277 @@
+==============================================================================
+ DATABASE MANAGEMENT SYSTEM - TASK 2 (THEORY) - DETAILED ANSWERS
+ Slips 1 to 22  (5 marks each)
+==============================================================================
+
+SAMPLE TABLES USED IN THE EXAMPLES
+
+ EMP                                         DEPT
+ empno  ename  job      sal   deptno         deptno  dname       loc
+ -----  -----  -------  ----  ------         ------  ----------  ----------
+ 101    Amit   Clerk    3000  10             10      COMPUTER    Pune
+ 102    Sneha  Manager  8000  20             20      ACCOUNTS    Mumbai
+ 103    Rahul  Analyst  6000  10             30      SALES       Nagpur
+ 104    Pooja  Clerk    4000  20             40      OPERATIONS  Chandrapur
+ 105    Vijay  Manager  9000  30
+
+ (Department 40 has no employee - useful for outer joins.)
+
+INDEX
+ Slip  1 : Four aggregate functions
+ Slip  2 : Four string functions
+ Slip  3 : Joins in SQL
+ Slip  4 : Four arithmetic functions
+ Slip  5 : COMMIT, ROLLBACK, SAVEPOINT
+ Slip  6 : Sequence
+ Slip  7 : Types of index
+ Slip  8 : Exception and its types
+ Slip  9 : Cursor and FETCH statement
+ Slip 10 : View and its syntax
+ Slip 11 : Set operators
+ Slip 12 : Joins
+ Slip 13 : GROUP BY clause
+ Slip 14 : Normalization and its types
+ Slip 15 : Four DML commands
+ Slip 16 : Four DDL commands
+ Slip 17 : E-R diagram - Library Management System
+ Slip 18 : Integrity constraints
+ Slip 19 : Types of attribute
+ Slip 20 : Data abstraction (with diagram)
+ Slip 21 : Trigger and its syntax
+ Slip 22 : Transaction state diagram
+
+
+==============================================================================
+SLIP 1 : Describe four aggregate functions with example.
+==============================================================================
+
+DEFINITION
+ Aggregate (group) functions work on a group of rows and return ONE single
+ value for the whole group. They are also called multi-row or group functions.
+
+POINTS TO REMEMBER
+ - They ignore NULL values (except COUNT(*), which counts all rows).
+ - They can be used in SELECT, HAVING and ORDER BY clauses, but NOT in WHERE.
+ - Used with GROUP BY, they return one result per group.
+ - DISTINCT can be used inside them to ignore duplicate values.
+
+SYNTAX
+ function_name( [DISTINCT | ALL] column_name )
+
+THE FUNCTIONS (results are for the sample EMP table: 3000,8000,6000,4000,9000)
+
+ 1) COUNT - counts the number of rows (or non-NULL values of a column).
+      SELECT COUNT(*) FROM emp;               -> 5
+      SELECT COUNT(DISTINCT job) FROM emp;    -> 3  (Clerk, Manager, Analyst)
+
+ 2) SUM - returns the total of the values of a numeric column.
+      SELECT SUM(sal) FROM emp;               -> 30000
+
+ 3) AVG - returns the average of the values of a numeric column.
+      SELECT AVG(sal) FROM emp;               -> 6000
+
+ 4) MAX - returns the highest value of a column.
+      SELECT MAX(sal) FROM emp;               -> 9000
+
+ 5) MIN - returns the lowest value of a column.
+      SELECT MIN(sal) FROM emp;               -> 3000
+
+WITH WHERE CLAUSE (only the selected rows are grouped)
+      SELECT MAX(sal) FROM emp WHERE deptno = 10;    -> 6000
+      SELECT SUM(sal) FROM emp WHERE job = 'Clerk';  -> 7000
+
+WITH GROUP BY (one value per group)
+      SELECT deptno, SUM(sal) FROM emp GROUP BY deptno;
+
+      DEPTNO   SUM(SAL)
+      ------   --------
+          10       9000
+          20      12000
+          30       9000
+
+
+==============================================================================
+SLIP 2 : Explain any four string functions with example.
+==============================================================================
+
+DEFINITION
+ String (character) functions work on character data. They take one or more
+ character values and return a character or a numeric value. They are
+ single-row functions: they give one result for every row. The examples use
+ DUAL, the dummy table of Oracle that has one row and one column.
+
+ 1) UPPER(str)   - converts all letters to capital letters.
+      SELECT UPPER('database') FROM dual;              -> DATABASE
+
+ 2) LOWER(str)   - converts all letters to small letters.
+      SELECT LOWER('SQL Query') FROM dual;             -> sql query
+
+ 3) INITCAP(str) - first letter of every word in capital, rest in small.
+      SELECT INITCAP('diploma in computer') FROM dual; -> Diploma In Computer
+
+ 4) LENGTH(str)  - returns the number of characters in the string.
+      SELECT LENGTH('Oracle') FROM dual;               -> 6
+
+ 5) SUBSTR(str, m, n) - extracts n characters starting from position m.
+      SELECT SUBSTR('DATABASE', 1, 4) FROM dual;       -> DATA
+      (a negative m counts from the end: SUBSTR('DATABASE', -4) -> BASE)
+
+ 6) INSTR(str, s) - returns the position where substring s first occurs
+                    (0 if not found).
+      SELECT INSTR('DATABASE', 'BASE') FROM dual;      -> 5
+
+ 7) CONCAT(s1, s2) - joins two strings (same as the || operator).
+      SELECT CONCAT('Data', 'base') FROM dual;         -> Database
+      SELECT 'Data' || 'base' FROM dual;               -> Database
+
+ 8) REPLACE(str, a, b) - replaces every a in str with b.
+      SELECT REPLACE('JACK AND JUE', 'J', 'BL') FROM dual;
+                                                       -> BLACK AND BLUE
+
+ 9) LPAD(str, n, ch) / RPAD(str, n, ch) - pads with ch on the left / right
+                                          until the total length is n.
+      SELECT LPAD('5', 3, '0') FROM dual;              -> 005
+      SELECT RPAD('Hi', 5, '*') FROM dual;             -> Hi***
+
+10) TRIM(str) - removes leading and trailing spaces (LTRIM / RTRIM remove
+                from the left / right only).
+      SELECT TRIM('   SQL   ') FROM dual;              -> SQL
+
+EXAMPLE ON A TABLE
+      SELECT UPPER(ename), LENGTH(ename), SUBSTR(ename, 1, 3)
+      FROM emp WHERE empno = 102;
+
+      UPPER(ENAME)  LENGTH(ENAME)  SUBSTR(ENAME,1,3)
+      ------------  -------------  -----------------
+      SNEHA                     5  Sne
+
+(Write any four functions with syntax and example in the exam.)
+
+
+==============================================================================
+SLIP 3 : Explain joins in SQL with examples.
+==============================================================================
+
+DEFINITION
+ A join is used to combine rows of two or more tables into a single result,
+ using a related (common) column - usually the primary key of one table and
+ the foreign key of the other. Joins avoid storing the same data again and
+ again, because data is kept in separate tables and joined when needed.
+
+ Examples use EMP and DEPT. The common column is deptno.
+
+1) INNER JOIN (EQUI JOIN)
+ Returns only the rows that have matching values in both tables.
+
+      SELECT e.ename, d.dname
+      FROM emp e INNER JOIN dept d
+      ON e.deptno = d.deptno;
+
+      -- Oracle style:
+      SELECT e.ename, d.dname FROM emp e, dept d
+      WHERE e.deptno = d.deptno;
+
+      ENAME   DNAME
+      -----   --------
+      Amit    COMPUTER
+      Sneha   ACCOUNTS
+      Rahul   COMPUTER
+      Pooja   ACCOUNTS
+      Vijay   SALES
+
+2) OUTER JOINS
+ An outer join returns the matching rows AND the unmatched rows of one or both
+ tables. NULL is shown for the missing values.
+
+ a) LEFT OUTER JOIN  - all rows of the left table + matching rows of right.
+      SELECT d.dname, e.ename
+      FROM dept d LEFT OUTER JOIN emp e
+      ON d.deptno = e.deptno;
+
+ b) RIGHT OUTER JOIN - all rows of the right table + matching rows of left.
+      SELECT d.dname, e.ename
+      FROM emp e RIGHT OUTER JOIN dept d
+      ON e.deptno = d.deptno;
+
+ c) FULL OUTER JOIN  - all rows of both tables, matched or not.
+      SELECT d.dname, e.ename
+      FROM emp e FULL OUTER JOIN dept d
+      ON e.deptno = d.deptno;
+
+ Output of (a) and (b) (department 40 has no employee, so ENAME is NULL):
+
+      DNAME        ENAME
+      ----------   -----
+      COMPUTER     Amit
+      COMPUTER     Rahul
+      ACCOUNTS     Sneha
+      ACCOUNTS     Pooja
+      SALES        Vijay
+      OPERATIONS   (null)
+
+3) CROSS JOIN (Cartesian product)
+ Every row of the first table is paired with every row of the second table.
+ If EMP has 5 rows and DEPT has 4 rows, the result has 5 x 4 = 20 rows.
+      SELECT e.ename, d.dname FROM emp e CROSS JOIN dept d;
+
+4) SELF JOIN
+ A table is joined with itself using two different aliases (see Slip 12).
+
+5) NATURAL JOIN
+ Joins automatically on the columns having the same name in both tables.
+      SELECT ename, dname FROM emp NATURAL JOIN dept;
+
+
+==============================================================================
+SLIP 4 : Explain any four arithmetic functions with example.
+==============================================================================
+
+DEFINITION
+ Arithmetic (numeric) functions take numeric values and return numeric values.
+ They are single-row functions. Examples use the table DUAL.
+
+ 1) ABS(n)  - absolute (positive) value of n.
+      SELECT ABS(-15) FROM dual;            -> 15
+
+ 2) CEIL(n) - smallest integer greater than or equal to n.
+      SELECT CEIL(4.2) FROM dual;           -> 5
+
+ 3) FLOOR(n) - largest integer less than or equal to n.
+      SELECT FLOOR(4.8) FROM dual;          -> 4
+
+ 4) ROUND(n, m) - rounds n to m decimal places.
+      SELECT ROUND(45.926, 2) FROM dual;    -> 45.93
+      SELECT ROUND(45.926, 0) FROM dual;    -> 46
+      SELECT ROUND(45.926, -1) FROM dual;   -> 50   (negative m rounds the
+                                                     digits left of the point)
+
+ 5) TRUNC(n, m) - cuts n to m decimal places WITHOUT rounding.
+      SELECT TRUNC(45.926, 2) FROM dual;    -> 45.92
+
+ 6) MOD(m, n) - remainder of m divided by n.
+      SELECT MOD(10, 3) FROM dual;          -> 1
+
+ 7) POWER(m, n) - m raised to the power n.
+      SELECT POWER(2, 3) FROM dual;         -> 8
+
+ 8) SQRT(n) - square root of n.
+      SELECT SQRT(25) FROM dual;            -> 5
+
+ 9) SIGN(n) - returns 1 for positive, -1 for negative, 0 for zero.
+      SELECT SIGN(-8) FROM dual;            -> -1
+
+EXAMPLE ON A TABLE
+      SELECT ename, sal, ROUND(sal / 7, 2) FROM emp WHERE empno = 101;
+      -> Amit  3000  428.57
+
+(Write any four functions with syntax and example in the exam.)
+
+
+==============================================================================
+SLIP 5 : Describe COMMIT, ROLLBACK and SAVEPOINT with example.
+==============================================================================
+
+TRANSACTION CONTROL LANGUAGE (TCL)
+ A transaction is a group of DML statements (INSERT, UPDATE, DELETE) treated as
+ ONE logical unit of work: either all of them are saved or none of them.
+ TCL commands control the transactions. Until a transaction is committed, its
+ changes are visible only to the user who made them.
+
+1) COMMIT
+ Saves all the changes of the current transaction permanently in the database.
+ After COMMIT the changes cannot be undone, and they become visible to other
+ users.
+      Syntax :  COMMIT;
+
+2) ROLLBACK
+ Undoes the changes made since the last COMMIT (or up to a savepoint) and
+ restores the earlier state of the data.
+      Syntax :  ROLLBACK;                      -- cancels the whole transaction
+                ROLLBACK TO savepoint_name;    -- cancels up to the savepoint
+
+3) SAVEPOINT
+ Marks a point inside a transaction, so that only a part of the transaction can
+ be rolled back, up to that point.
+      Syntax :  SAVEPOINT savepoint_name;
+
+EXAMPLE
+      CREATE TABLE student (roll_no NUMBER(3), name VARCHAR2(15));
+
+      INSERT INTO student VALUES (1, 'Amit');
+      SAVEPOINT sp1;
+      INSERT INTO student VALUES (2, 'Sneha');
+      SAVEPOINT sp2;
+      INSERT INTO student VALUES (3, 'Rahul');
+
+      ROLLBACK TO sp2;    -- Rahul's row is cancelled; Amit and Sneha remain
+      COMMIT;             -- rows 1 and 2 are saved permanently
+
+      SELECT * FROM student;
+
+      ROLL_NO   NAME
+      -------   -----
+            1   Amit
+            2   Sneha
+
+ If we had written ROLLBACK TO sp1, only Amit would remain. A plain ROLLBACK
+ would remove all three rows.
+
+NOTE
+ - DDL commands (CREATE, ALTER, DROP) and a normal exit from SQL*Plus perform
+   an automatic COMMIT in Oracle.
+ - After ROLLBACK TO a savepoint, the savepoints created after it are lost.
+
+
+==============================================================================
+SLIP 6 : What is a sequence? How is it created?
+==============================================================================
+
+DEFINITION
+ A sequence is a database object that automatically generates a series of
+ unique numbers. It is mostly used to generate primary key values (roll no,
+ employee no, order id), so that the user need not type them and duplicates
+ never occur. One sequence can be shared by many users and many tables.
+
+SYNTAX
+      CREATE SEQUENCE sequence_name
+        [START WITH n]
+        [INCREMENT BY n]
+        [MAXVALUE n | NOMAXVALUE]
+        [MINVALUE n | NOMINVALUE]
+        [CYCLE | NOCYCLE]
+        [CACHE n | NOCACHE];
+
+ OPTION                  MEANING
+ ----------------------  ---------------------------------------------------
+ START WITH n            First number generated (default 1)
+ INCREMENT BY n          Step between two numbers (default 1); a negative
+                         value gives a descending sequence
+ MAXVALUE / NOMAXVALUE   Highest number that can be generated
+ MINVALUE / NOMINVALUE   Lowest number that can be generated
+ CYCLE / NOCYCLE         Restart after reaching the limit or not (default
+                         NOCYCLE)
+ CACHE n / NOCACHE       Number of values kept ready in memory for speed
+
+EXAMPLE
+      CREATE SEQUENCE stud_seq
+        START WITH 1
+        INCREMENT BY 1
+        MAXVALUE 1000
+        NOCYCLE;
+
+      INSERT INTO student (roll_no, name) VALUES (stud_seq.NEXTVAL, 'Amit');
+      INSERT INTO student (roll_no, name) VALUES (stud_seq.NEXTVAL, 'Sneha');
+
+      SELECT stud_seq.CURRVAL FROM dual;        -> 2
+
+PSEUDO-COLUMNS
+ - sequence_name.NEXTVAL : generates the next number (must be used first).
+ - sequence_name.CURRVAL : returns the current number; it can be used only
+                           after NEXTVAL has been used once in the session.
+
+OTHER COMMANDS
+      ALTER SEQUENCE stud_seq INCREMENT BY 5;   -- change options
+      DROP SEQUENCE stud_seq;                   -- delete the sequence
+      SELECT * FROM user_sequences;             -- see all your sequences
+
+ - ALTER SEQUENCE cannot change START WITH.
+ - Descending example:
+      CREATE SEQUENCE countdown START WITH 100 INCREMENT BY -10
+             MINVALUE 0 MAXVALUE 100;
+ - A rolled-back INSERT does not give the number back, so gaps can occur.
+
+
+==============================================================================
+SLIP 7 : Describe types of index.
+==============================================================================
+
+DEFINITION
+ An index is a database object created on one or more columns of a table to
+ make searching (retrieval) of rows faster, just like the index at the end of
+ a book. Oracle maintains it automatically when rows are inserted, updated or
+ deleted. Too many indexes slow down the DML operations, so create indexes
+ only on columns that are searched often (in WHERE or JOIN conditions).
+
+SYNTAX
+      CREATE [UNIQUE | BITMAP] INDEX index_name
+      ON table_name (column1 [, column2, ...]);
+
+TYPES OF INDEX
+
+ 1) Simple index   - created on a single column.
+      CREATE INDEX idx_ename ON emp(ename);
+
+ 2) Unique index   - does not allow duplicate values in the indexed column.
+                     It is created automatically for PRIMARY KEY and UNIQUE
+                     constraints.
+      CREATE UNIQUE INDEX idx_empno ON emp(empno);
+
+ 3) Composite index - created on two or more columns (concatenated index).
+      CREATE INDEX idx_dept_job ON emp(deptno, job);
+
+ 4) B-tree index   - the default type. Keys are stored in a balanced tree
+                     structure. Best for columns with MANY distinct values
+                     (empno, ename, sal).
+      CREATE INDEX idx_sal ON emp(sal);
+
+ 5) Bitmap index   - uses bitmaps instead of a tree. Suitable for columns with
+                     FEW distinct values (gender, job, status).
+      CREATE BITMAP INDEX idx_job ON emp(job);
+
+ 6) Function-based index - created on the result of a function or expression.
+      CREATE INDEX idx_upper ON emp(UPPER(ename));
+
+OTHER COMMANDS
+      DROP INDEX idx_ename;                    -- table data is not affected
+      SELECT * FROM user_indexes;              -- list indexes
+
+ADVANTAGES   : faster SELECT, faster joins and sorting.
+DISADVANTAGES: takes extra storage space and slows INSERT/UPDATE/DELETE.
+
+
+==============================================================================
+SLIP 8 : What is an exception? What are its types?
+==============================================================================
+
+DEFINITION
+ An exception is an error condition that occurs while a PL/SQL block is running
+ (run time) and stops the normal execution. When an exception is raised,
+ control jumps to the EXCEPTION section of the block, where the error can be
+ handled so that the program does not end abruptly.
+
+STRUCTURE OF EXCEPTION HANDLING
+      DECLARE
+        -- declarations
+      BEGIN
+        -- executable statements
+      EXCEPTION
+        WHEN exception_name1 THEN
+          -- statements to handle the error
+        WHEN OTHERS THEN
+          -- handler for all remaining errors
+      END;
+      /
+
+TYPES OF EXCEPTIONS
+
+1) PREDEFINED EXCEPTIONS
+ Names are already defined by Oracle. They are raised automatically when the
+ error occurs; no declaration is needed.
+
+ EXCEPTION            ORACLE ERROR   RAISED WHEN
+ -------------------  -------------  ----------------------------------------
+ NO_DATA_FOUND        ORA-01403      SELECT INTO returns no row
+ TOO_MANY_ROWS        ORA-01422      SELECT INTO returns more than one row
+ ZERO_DIVIDE          ORA-01476      a number is divided by zero
+ DUP_VAL_ON_INDEX     ORA-00001      duplicate value in a unique/primary key
+ VALUE_ERROR          ORA-06502      arithmetic, conversion or size error
+ INVALID_NUMBER       ORA-01722      string to number conversion fails
+ CURSOR_ALREADY_OPEN  ORA-06511      an already open cursor is opened again
+
+ Example:
+      DECLARE
+        a NUMBER := 10;  b NUMBER := 0;
+      BEGIN
+        DBMS_OUTPUT.PUT_LINE(a / b);
+      EXCEPTION
+        WHEN ZERO_DIVIDE THEN
+          DBMS_OUTPUT.PUT_LINE('Cannot divide by zero');
+      END;
+      /
+
+2) USER-DEFINED EXCEPTIONS
+ Defined by the programmer for conditions of the application (e.g. low
+ balance). Three steps: DECLARE the name, RAISE it, HANDLE it.
+
+      DECLARE
+        low_balance EXCEPTION;            -- 1. declare
+        bal NUMBER := 500;
+      BEGIN
+        IF bal < 1000 THEN
+          RAISE low_balance;              -- 2. raise
+        END IF;
+      EXCEPTION
+        WHEN low_balance THEN             -- 3. handle
+          DBMS_OUTPUT.PUT_LINE('Balance is below 1000');
+      END;
+      /
+
+USEFUL FUNCTIONS
+ - SQLCODE returns the error number; SQLERRM returns the error message.
+ - WHEN OTHERS THEN handles every exception not named before it.
+ - RAISE_APPLICATION_ERROR(-20001, 'message') raises an error with your own
+   message (error number between -20000 and -20999).
+ - Once an exception is raised, the rest of the block body is skipped.
+
+
+==============================================================================
+SLIP 9 : What is a cursor? Describe the use of the FETCH statement.
+==============================================================================
+
+DEFINITION
+ A cursor is a pointer to a private memory area (context area) created by
+ Oracle to store the rows returned by a SQL statement. The set of rows is
+ called the "active set". A cursor lets a PL/SQL program process the result of
+ a multi-row query one row at a time.
+
+TYPES OF CURSOR
+ 1) Implicit cursor - created automatically by Oracle for every DML statement
+    (INSERT, UPDATE, DELETE) and for SELECT INTO. Its attributes are used as
+    SQL%FOUND, SQL%NOTFOUND, SQL%ROWCOUNT.
+ 2) Explicit cursor - declared by the programmer for a SELECT statement that
+    returns more than one row.
+
+STEPS TO USE AN EXPLICIT CURSOR
+      DECLARE   - give a name and the SELECT statement
+         |
+      OPEN      - executes the query and fills the active set
+         |
+      FETCH     - reads one row (repeated in a loop)
+         |
+      CLOSE     - releases the memory
+
+USE OF THE FETCH STATEMENT
+      FETCH cursor_name INTO variable1, variable2, ... ;
+
+ - FETCH reads the CURRENT row of the active set and copies the column values
+   into the listed variables (or into one record variable).
+ - After every FETCH the cursor pointer moves to the NEXT row, so FETCH is
+   placed inside a loop to read all rows.
+ - The number and data types of the variables must match the columns in the
+   SELECT list of the cursor.
+ - When no row is left, cursor_name%NOTFOUND becomes TRUE and the loop is
+   ended with EXIT WHEN.
+
+EXAMPLE
+      DECLARE
+        CURSOR c_emp IS SELECT ename, sal FROM emp;
+        v_name emp.ename%TYPE;
+        v_sal  emp.sal%TYPE;
+      BEGIN
+        OPEN c_emp;
+        LOOP
+          FETCH c_emp INTO v_name, v_sal;
+          EXIT WHEN c_emp%NOTFOUND;
+          DBMS_OUTPUT.PUT_LINE(v_name || ' earns ' || v_sal);
+        END LOOP;
+        CLOSE c_emp;
+      END;
+      /
+
+      Output:  Amit earns 3000
+               Sneha earns 8000
+               Rahul earns 6000
+               Pooja earns 4000
+               Vijay earns 9000
+
+CURSOR ATTRIBUTES
+ %FOUND      TRUE if the last FETCH returned a row
+ %NOTFOUND   TRUE if the last FETCH did not return a row
+ %ISOPEN     TRUE if the cursor is open
+ %ROWCOUNT   number of rows fetched so far
+
+CURSOR FOR LOOP (shortcut): OPEN, FETCH, EXIT and CLOSE are done automatically.
+      FOR r IN c_emp LOOP
+        DBMS_OUTPUT.PUT_LINE(r.ename || ' ' || r.sal);
+      END LOOP;
+
+
+==============================================================================
+SLIP 10 : What is a view? Write the syntax to create a view.
+==============================================================================
+
+DEFINITION
+ A view is a virtual table based on the result of a SELECT query on one or
+ more base tables. A view does not store data itself; the data is taken from
+ the base tables each time the view is used. So it is also called a "stored
+ query".
+
+SYNTAX
+      CREATE [OR REPLACE] [FORCE] VIEW view_name [(column_alias, ...)]
+      AS
+        SELECT column1, column2, ...
+        FROM table_name
+        [WHERE condition]
+      [WITH CHECK OPTION]
+      [WITH READ ONLY];
+
+EXAMPLE
+      CREATE VIEW emp_dept10 AS
+        SELECT empno, ename, sal
+        FROM emp
+        WHERE deptno = 10;
+
+      SELECT * FROM emp_dept10;          -- use the view like a table
+
+      EMPNO   ENAME   SAL
+      -----   -----   ----
+        101   Amit    3000
+        103   Rahul   6000
+
+      DROP VIEW emp_dept10;              -- base table is not affected
+
+TYPES OF VIEW
+ - Simple view  : based on ONE table, no functions or groups; DML (INSERT,
+                  UPDATE, DELETE) is allowed through it.
+ - Complex view : based on more than one table (join) or uses functions /
+                  GROUP BY; DML is usually not allowed.
+
+OPTIONS
+ - WITH CHECK OPTION : stops DML that would create rows the view cannot see.
+ - WITH READ ONLY    : allows only SELECT through the view.
+
+ADVANTAGES
+ - Security : shows only selected rows/columns of a table to a user.
+ - Simplicity : a complex query (joins) is saved once and used like a table.
+ - Data independence : users are not affected by changes in base tables.
+ - Same data can be presented in different forms to different users.
+
+
+==============================================================================
+SLIP 11 : Describe set operators with example.
+==============================================================================
+
+DEFINITION
+ Set operators combine the results of two or more SELECT queries into a
+ SINGLE result.
+
+RULES
+ - Both queries must select the same number of columns.
+ - Corresponding columns must have compatible data types.
+ - Column names of the final result come from the first query.
+
+EXAMPLE TABLES
+ SEMINAR_A(name) : Amit, Sneha, Rahul, Vijay
+ SEMINAR_B(name) : Sneha, Pooja, Vijay
+
+ 1) UNION - all rows of both queries; duplicates are removed (result sorted).
+      SELECT name FROM seminar_a
+      UNION
+      SELECT name FROM seminar_b;
+      Result: Amit, Pooja, Rahul, Sneha, Vijay
+
+ 2) UNION ALL - all rows of both queries; duplicates are kept.
+      SELECT name FROM seminar_a
+      UNION ALL
+      SELECT name FROM seminar_b;
+      Result: Amit, Sneha, Rahul, Vijay, Sneha, Pooja, Vijay
+
+ 3) INTERSECT - only the rows common to both queries.
+      SELECT name FROM seminar_a
+      INTERSECT
+      SELECT name FROM seminar_b;
+      Result: Sneha, Vijay
+
+ 4) MINUS - rows of the first query that are not present in the second.
+      SELECT name FROM seminar_a
+      MINUS
+      SELECT name FROM seminar_b;
+      Result: Amit, Rahul
+
+ Example on EMP / DEPT: departments that have no employee
+      SELECT deptno FROM dept
+      MINUS
+      SELECT deptno FROM emp;          -> 40
+
+
+==============================================================================
+SLIP 12 : Describe joins with example.
+==============================================================================
+
+DEFINITION
+ A join combines rows of two or more tables, based on a common column, to give
+ one result. The tables below are used in the examples.
+
+ CUSTOMER(cid, cname)        ORDERS(oid, cid, amount)
+ 1  Asha                     101  1  500
+ 2  Bharat                   102  1  300
+ 3  Chetan                   103  2  700
+                             104  4  200
+
+1) INNER (EQUI) JOIN - only the rows that match in both tables.
+      SELECT c.cname, o.amount
+      FROM customer c INNER JOIN orders o ON c.cid = o.cid;
+
+      Asha 500 / Asha 300 / Bharat 700
+
+2) LEFT OUTER JOIN - all rows of the left table + matches.
+      SELECT c.cname, o.amount
+      FROM customer c LEFT OUTER JOIN orders o ON c.cid = o.cid;
+
+      Asha 500 / Asha 300 / Bharat 700 / Chetan (null)
+
+3) RIGHT OUTER JOIN - all rows of the right table + matches.
+      SELECT c.cname, o.amount
+      FROM customer c RIGHT OUTER JOIN orders o ON c.cid = o.cid;
+
+      Asha 500 / Asha 300 / Bharat 700 / (null) 200
+
+4) FULL OUTER JOIN - all rows of both tables, matched or not.
+      SELECT c.cname, o.amount
+      FROM customer c FULL OUTER JOIN orders o ON c.cid = o.cid;
+
+      Asha 500 / Asha 300 / Bharat 700 / Chetan (null) / (null) 200
+
+5) CROSS JOIN - every row of one table with every row of the other
+   (Cartesian product): 3 x 4 = 12 rows.
+      SELECT c.cname, o.oid FROM customer c CROSS JOIN orders o;
+
+6) SELF JOIN - a table is joined with itself using two different aliases.
+   EMPLOYEE(empno, ename, mgr): (7839, King, NULL), (7566, Jones, 7839),
+                                (7788, Scott, 7566)
+
+      SELECT e.ename AS employee, m.ename AS manager
+      FROM employee e JOIN employee m ON e.mgr = m.empno;
+
+      EMPLOYEE   MANAGER
+      --------   -------
+      Jones      King
+      Scott      Jones
+
+ORACLE STYLE OUTER JOIN
+ The (+) sign is placed on the side that may have missing rows:
+      WHERE c.cid = o.cid(+)      -- left outer join
+
+
+==============================================================================
+SLIP 13 : Describe the GROUP BY clause with example.
+==============================================================================
+
+DEFINITION
+ The GROUP BY clause arranges the rows of a table into groups that have the
+ same value in the given column(s), so that an aggregate function (COUNT, SUM,
+ AVG, MAX, MIN) gives ONE result per group.
+
+SYNTAX
+      SELECT column_name, aggregate_function(column)
+      FROM table_name
+      [WHERE condition]
+      GROUP BY column_name
+      [HAVING group_condition]
+      [ORDER BY column_name];
+
+RULES
+ - Every column in the SELECT list that is not inside an aggregate function
+   must appear in the GROUP BY clause.
+ - WHERE filters ROWS before grouping; HAVING filters GROUPS after grouping
+   (HAVING can use aggregate functions, WHERE cannot).
+ - Order of execution: FROM -> WHERE -> GROUP BY -> HAVING -> SELECT ->
+   ORDER BY.
+
+EXAMPLE 1 : employees and average salary of each department
+      SELECT deptno, COUNT(*) AS total_emp, AVG(sal) AS avg_sal
+      FROM emp
+      GROUP BY deptno;
+
+      DEPTNO   TOTAL_EMP   AVG_SAL
+      ------   ---------   -------
+          10           2      4500
+          20           2      6000
+          30           1      9000
+
+EXAMPLE 2 : HAVING - only departments whose average salary is more than 5000
+      SELECT deptno, AVG(sal)
+      FROM emp
+      GROUP BY deptno
+      HAVING AVG(sal) > 5000;
+
+      DEPTNO   AVG(SAL)
+      ------   --------
+          20       6000
+          30       9000
+
+EXAMPLE 3 : grouping on two columns
+      SELECT deptno, job, COUNT(*)
+      FROM emp
+      GROUP BY deptno, job
+      ORDER BY deptno, job;
+
+      DEPTNO   JOB       COUNT(*)
+      ------   -------   --------
+          10   Analyst          1
+          10   Clerk            1
+          20   Clerk            1
+          20   Manager          1
+          30   Manager          1
+
+
+==============================================================================
+SLIP 14 : What is normalization? What are its types?
+==============================================================================
+
+DEFINITION
+ Normalization is the process of organising the data of a database into
+ well-structured tables, by decomposing a large table into smaller ones, to
+ reduce data redundancy (repetition) and to avoid the insertion, deletion and
+ update anomalies. It is based on functional dependencies.
+
+ Functional dependency X -> Y : the value of X decides the value of Y
+ (e.g. roll_no -> name).
+
+NEED / ANOMALIES
+ - Insertion anomaly : a fact cannot be stored without some other fact.
+ - Deletion anomaly  : deleting one fact also deletes other useful data.
+ - Update anomaly    : the same data must be changed in many places.
+
+NORMAL FORMS (stages of normalization)
+
+ 1) FIRST NORMAL FORM (1NF)
+    Rule: every column holds only atomic (single) values; no repeating groups
+    or multi-valued columns.
+    Not in 1NF : STUDENT(roll, name, phone)  -> (1, Amit, '9811, 9822')
+    In 1NF     : (1, Amit, 9811) and (1, Amit, 9822)  - one phone per row.
+
+ 2) SECOND NORMAL FORM (2NF)
+    Rule: table is in 1NF and there is NO PARTIAL DEPENDENCY - every non-key
+    column depends on the WHOLE primary key.
+    ORDER_ITEM(order_id, product_id, product_name, qty), key = (order_id,
+    product_id). product_name depends only on product_id -> partial dependency.
+    Split into:
+        ORDER_ITEM(order_id, product_id, qty)
+        PRODUCT(product_id, product_name)
+
+ 3) THIRD NORMAL FORM (3NF)
+    Rule: table is in 2NF and there is NO TRANSITIVE DEPENDENCY - a non-key
+    column must not depend on another non-key column.
+    STUDENT(roll, name, dept_id, dept_name): roll -> dept_id -> dept_name.
+    Split into:
+        STUDENT(roll, name, dept_id)
+        DEPT(dept_id, dept_name)
+
+ 4) BOYCE-CODD NORMAL FORM (BCNF) - stronger form of 3NF
+    Rule: table is in 3NF and for every functional dependency X -> Y, X is a
+    super key.
+    TEACH(student, teacher, course) with teacher -> course. Split into:
+        TEACHER_COURSE(teacher, course)
+        STUDENT_TEACHER(student, teacher)
+
+SUMMARY
+      Unnormalized -> 1NF (atomic values) -> 2NF (remove partial dependency)
+                   -> 3NF (remove transitive dependency) -> BCNF
+
+ (1NF, 2NF and 3NF are the core forms. Add BCNF if covered in your class.)
+
+
+==============================================================================
+SLIP 15 : Describe any four DML commands.
+==============================================================================
+
+DEFINITION
+ Data Manipulation Language (DML) commands are used to retrieve and change the
+ DATA stored in the tables. Changes become permanent only after COMMIT and can
+ be cancelled with ROLLBACK.
+
+ 1) SELECT - retrieves data from one or more tables.
+      Syntax : SELECT col1, col2 FROM table_name [WHERE condition];
+      Example: SELECT ename, sal FROM emp WHERE deptno = 10;
+               SELECT * FROM emp;               (all columns)
+
+ 2) INSERT - adds a new row to a table.
+      Syntax : INSERT INTO table_name VALUES (v1, v2, ...);
+               INSERT INTO table_name (col1, col2) VALUES (v1, v2);
+      Example: INSERT INTO dept VALUES (50, 'PURCHASE', 'Nashik');
+               INSERT INTO emp (empno, ename) VALUES (109, 'Ravi');
+
+ 3) UPDATE - changes the existing data of a table.
+      Syntax : UPDATE table_name SET col = value [WHERE condition];
+      Example: UPDATE emp SET sal = sal + 500 WHERE empno = 101;
+
+ 4) DELETE - removes rows from a table.
+      Syntax : DELETE FROM table_name [WHERE condition];
+      Example: DELETE FROM emp WHERE empno = 105;
+
+NOTES
+ - Without a WHERE clause, UPDATE and DELETE affect ALL rows of the table.
+ - DELETE removes rows but keeps the table structure; it can be rolled back.
+ - Example of ROLLBACK:
+      DELETE FROM emp;     ROLLBACK;     -- all rows come back
+
+
+==============================================================================
+SLIP 16 : Describe any four DDL commands.
+==============================================================================
+
+DEFINITION
+ Data Definition Language (DDL) commands are used to create, change and remove
+ the STRUCTURE of database objects (tables, views, indexes, sequences). DDL
+ commands are auto-committed; they cannot be rolled back.
+
+ 1) CREATE - creates a new database object (table, view, index, ...).
+      Syntax : CREATE TABLE table_name (col1 datatype, col2 datatype, ...);
+      Example: CREATE TABLE student
+               (roll_no NUMBER(3),
+                name    VARCHAR2(20),
+                marks   NUMBER(3));
+
+ 2) ALTER - changes the structure of an existing table.
+      ADD a column      : ALTER TABLE student ADD (city VARCHAR2(15));
+      MODIFY a column   : ALTER TABLE student MODIFY (name VARCHAR2(30));
+      DROP a column     : ALTER TABLE student DROP COLUMN city;
+      RENAME a column   : ALTER TABLE student RENAME COLUMN name TO sname;
+
+ 3) DROP - deletes the table (structure AND data) permanently.
+      Syntax : DROP TABLE table_name;
+      Example: DROP TABLE student;
+
+ 4) TRUNCATE - deletes ALL rows of a table but keeps its structure; faster than
+               DELETE and cannot be rolled back.
+      Syntax : TRUNCATE TABLE table_name;
+      Example: TRUNCATE TABLE student;
+
+ 5) RENAME - changes the name of a table.
+      Syntax : RENAME old_name TO new_name;
+      Example: RENAME student TO stud;
+
+DIFFERENCE : DELETE vs TRUNCATE vs DROP
+      DELETE   : DML, removes selected/all rows, can be rolled back.
+      TRUNCATE : DDL, removes all rows, structure remains, no rollback.
+      DROP     : DDL, removes rows and structure, no rollback.
+
+
+==============================================================================
+SLIP 17 : Draw an E-R diagram for a Library Management System.
+==============================================================================
+
+NOTATION (Chen notation)
+ [ ] rectangle = entity,  < > diamond = relationship,  ( ) ellipse = attribute,
+ * before an attribute name = primary key (underlined in the drawing),
+ 1, N, M = cardinality of the relationship.
+
+DIAGRAM
+
+   (*pub_id) (pub_name) (city)
+         \        |        /
+          +---------------+
+          |   PUBLISHER   |
+          +---------------+
+                  |
+                  1
+                  |
+            < publishes >
+                  |
+                  N
+                  |
+   (*book_id) (title) (author) (price)
+         \        |        /
+          +---------------+
+          |     BOOK      |
+          +---------------+
+                  |
+                  N
+                  |
+            <   issues   >------(issue_date) (due_date) (return_date)
+                  |
+                  M
+                  |
+          +---------------+
+          |    MEMBER     |------(*member_id) (name) (address) (phone)
+          +---------------+
+                  |
+                  N
+                  |
+            < registers  >
+                  |
+                  1
+                  |
+          +---------------+
+          |   LIBRARIAN   |------(*lib_id) (lib_name) (phone)
+          +---------------+
+
+ENTITIES AND ATTRIBUTES
+ PUBLISHER : pub_id (key), pub_name, city
+ BOOK      : book_id (key), title, author, price
+ MEMBER    : member_id (key), name, address, phone
+ LIBRARIAN : lib_id (key), lib_name, phone
+
+RELATIONSHIPS
+ issues     MEMBER - BOOK        Many to many (M : N). A member can borrow many
+            books and a book is issued to many members over time.
+            Attributes of the relationship: issue_date, due_date, return_date.
+ publishes  PUBLISHER - BOOK     One to many (1 : N). One publisher publishes
+            many books; a book has one publisher.
+ registers  LIBRARIAN - MEMBER   One to many (1 : N). A librarian registers
+            many members.
+
+CONVERSION TO TABLES (relational schema)
+ PUBLISHER(pub_id, pub_name, city)
+ BOOK(book_id, title, author, price, pub_id)        pub_id = foreign key
+ MEMBER(member_id, name, address, phone, lib_id)    lib_id = foreign key
+ LIBRARIAN(lib_id, lib_name, phone)
+ ISSUE(member_id, book_id, issue_date, due_date, return_date)
+                                       (M:N relationship becomes its own table)
+
+
+==============================================================================
+SLIP 18 : Explain integrity constraints.
+==============================================================================
+
+DEFINITION
+ Integrity constraints are rules applied on the columns of a table to keep the
+ data correct, valid and consistent. Oracle rejects any INSERT, UPDATE or
+ DELETE that violates a constraint.
+
+ CONSTRAINT    RULE                                           TYPE OF INTEGRITY
+ ------------  ---------------------------------------------  -----------------
+ NOT NULL      Column cannot contain NULL (value compulsory)  Domain
+ UNIQUE        All values are different (NULL allowed)        Key
+ PRIMARY KEY   Uniquely identifies each row; NOT NULL +       Entity integrity
+               UNIQUE; only one per table
+ FOREIGN KEY   Value must match a primary key value of the    Referential
+               parent table (or be NULL)                      integrity
+ CHECK         Value must satisfy a condition, e.g. sal > 0   Domain
+ DEFAULT       Gives a default value when none is supplied    Domain
+
+EXAMPLE
+      CREATE TABLE dept (
+        deptno NUMBER(2) PRIMARY KEY,
+        dname  VARCHAR2(15) NOT NULL UNIQUE,
+        loc    VARCHAR2(15)
+      );
+
+      CREATE TABLE emp (
+        empno  NUMBER(4) PRIMARY KEY,
+        ename  VARCHAR2(15) NOT NULL,
+        sal    NUMBER(7,2) CHECK (sal > 0),
+        city   VARCHAR2(15) DEFAULT 'Pune',
+        deptno NUMBER(2) REFERENCES dept(deptno)
+      );
+
+NAMED CONSTRAINT AND ALTER
+      ALTER TABLE emp ADD CONSTRAINT chk_sal CHECK (sal > 0);
+      ALTER TABLE emp DROP CONSTRAINT chk_sal;
+
+ A foreign key can use ON DELETE CASCADE (child rows are deleted with the
+ parent row) or ON DELETE SET NULL.
+
+WHAT HAPPENS ON VIOLATION
+      INSERT INTO emp VALUES (101, 'X', 500, 'Pune', 10);
+      -> ORA-00001: unique constraint violated      (duplicate primary key)
+      INSERT INTO emp VALUES (110, 'X', 500, 'Pune', 99);
+      -> ORA-02291: integrity constraint violated - parent key not found
+      INSERT INTO emp VALUES (111, 'X', -5, 'Pune', 10);
+      -> ORA-02290: check constraint violated
+      DELETE FROM dept WHERE deptno = 10;
+      -> ORA-02292: child record found
+
+
+==============================================================================
+SLIP 19 : Explain types of attribute.
+==============================================================================
+
+DEFINITION
+ An attribute is a property (characteristic) of an entity. For example, the
+ entity STUDENT has the attributes roll_no, name, address and age. In an E-R
+ diagram each attribute is drawn as an ellipse joined to its entity.
+
+ TYPE           DESCRIPTION                              EXAMPLE
+ -------------  ---------------------------------------  ----------------------
+ Simple         Cannot be divided into smaller parts.    roll_no, age, salary
+ (atomic)
+
+ Composite      Can be divided into sub-attributes.      name = first_name +
+                                                         middle_name +
+                                                         last_name;
+                                                         address = street +
+                                                         city + pin
+
+ Single-valued  Has only one value for an entity.        roll_no, date_of_birth
+
+ Multi-valued   Can have more than one value for an      phone_no, email_id,
+                entity (drawn as a DOUBLE ellipse).      skills
+
+ Derived        Value is calculated from another         age derived from
+                attribute (drawn as a DASHED ellipse).   date_of_birth
+
+ Key attribute  Uniquely identifies each entity           roll_no of STUDENT,
+                (name is UNDERLINED).                    empno of EMP
+
+ Null attribute Value is unknown or not applicable for   middle_name,
+                some entities.                           commission
+
+ Notation summary:  single ellipse = simple/single-valued,
+                    double ellipse = multi-valued,
+                    dashed ellipse = derived,
+                    underlined name = key attribute.
+
+
+==============================================================================
+SLIP 20 : Describe data abstraction with a neat diagram.
+==============================================================================
+
+DEFINITION
+ Data abstraction means hiding the complex details of how data is stored and
+ maintained and showing the user only the required information. The DBMS
+ achieves it through THREE LEVELS of abstraction (three-level architecture).
+
+DIAGRAM
+
+                 +-----------------------------------------------+
+   VIEW LEVEL    |   View 1        View 2      ...      View n   |
+   (External)    |  (Student)     (Teacher)           (Accounts) |
+                 +-----------------------------------------------+
+                                       |
+                        view / logical mapping
+                                       |
+                 +-----------------------------------------------+
+   LOGICAL LEVEL |  Tables, columns, data types, relationships,  |
+   (Conceptual)  |  constraints                                  |
+                 |  e.g. STUDENT(roll_no, name, class, marks)    |
+                 +-----------------------------------------------+
+                                       |
+                       logical / physical mapping
+                                       |
+                 +-----------------------------------------------+
+  PHYSICAL LEVEL |  Files, blocks, indexes, record layout on     |
+   (Internal)    |  disk - how data is actually stored           |
+                 +-----------------------------------------------+
+
+THE THREE LEVELS
+ 1) PHYSICAL LEVEL (Internal) - lowest level. Describes HOW the data is
+    actually stored on the storage device: files, blocks, indexes and record
+    structures. Of interest to the DBA and system programmers.
+
+ 2) LOGICAL LEVEL (Conceptual) - next higher level. Describes WHAT data is
+    stored and the relationships among the data (tables, columns, data types,
+    constraints). Defined by the DBA; hides the storage details.
+
+ 3) VIEW LEVEL (External) - highest level. Describes only the part of the
+    database that a particular user needs. There can be many views of the same
+    database; this also provides security.
+
+DATA INDEPENDENCE
+ A change at a lower level does not affect the higher level.
+ - Physical data independence : changing the storage (e.g. new index or file
+   organisation) does not change the logical schema.
+ - Logical data independence : changing the logical schema (e.g. adding a
+   column) does not change the views / application programs.
+
+
+==============================================================================
+SLIP 21 : What is a trigger? Write the syntax to create a trigger.
+==============================================================================
+
+DEFINITION
+ A trigger is a stored PL/SQL block that is executed AUTOMATICALLY by Oracle
+ when a specified event (INSERT, UPDATE or DELETE) occurs on a table. It is
+ not called by the user. Triggers are used to enforce business rules, validate
+ data, keep an audit record and maintain data integrity.
+
+SYNTAX
+      CREATE [OR REPLACE] TRIGGER trigger_name
+      {BEFORE | AFTER}
+      {INSERT | UPDATE [OF column] | DELETE} [OR ...]
+      ON table_name
+      [FOR EACH ROW]
+      [WHEN (condition)]
+      DECLARE
+        -- variable declarations
+      BEGIN
+        -- trigger body (executable statements)
+      EXCEPTION
+        -- exception handling
+      END;
+      /
+
+PARTS OF A TRIGGER
+ - Triggering event     : INSERT / UPDATE / DELETE.
+ - Triggering timing    : BEFORE or AFTER the DML statement.
+ - Trigger level        : FOR EACH ROW = row-level trigger (fires once for
+                          every affected row, can use :OLD and :NEW);
+                          without it = statement-level trigger (fires once
+                          per statement).
+ - Condition (WHEN)     : optional; the trigger runs only if it is true.
+ - Trigger body         : the PL/SQL block that is executed.
+
+:OLD and :NEW
+ :OLD.column = value before the change (UPDATE, DELETE)
+ :NEW.column = value after the change  (INSERT, UPDATE)
+
+EXAMPLE 1 : validation - salary must not be negative
+      CREATE OR REPLACE TRIGGER trg_check_sal
+      BEFORE INSERT OR UPDATE ON emp
+      FOR EACH ROW
+      BEGIN
+        IF :NEW.sal < 0 THEN
+          RAISE_APPLICATION_ERROR(-20001, 'Salary cannot be negative');
+        END IF;
+      END;
+      /
+
+EXAMPLE 2 : audit - record the old and new salary
+      CREATE TABLE sal_audit (empno NUMBER, old_sal NUMBER, new_sal NUMBER);
+
+      CREATE OR REPLACE TRIGGER trg_sal_audit
+      AFTER UPDATE OF sal ON emp
+      FOR EACH ROW
+      BEGIN
+        INSERT INTO sal_audit VALUES (:OLD.empno, :OLD.sal, :NEW.sal);
+      END;
+      /
+
+      UPDATE emp SET sal = 3500 WHERE empno = 101;
+      SELECT * FROM sal_audit;      -> 101   3000   3500
+
+OTHER COMMANDS
+      ALTER TRIGGER trg_check_sal DISABLE;     -- (or ENABLE)
+      DROP TRIGGER trg_check_sal;              -- delete the trigger
+
+
+==============================================================================
+SLIP 22 : Describe the transaction state diagram.
+==============================================================================
+
+DEFINITION
+ A transaction is a group of operations (reads and writes) that forms ONE
+ logical unit of work. During its life a transaction passes through different
+ states, shown in the transaction state diagram.
+
+DIAGRAM
+
+                            last statement              commit
+  (begin) --> +--------+    executed    +-----------+ ---------> +-----------+
+              | ACTIVE |--------------->| PARTIALLY |            | COMMITTED |
+              +--------+                | COMMITTED |            +-----------+
+                  |                     +-----------+
+                  | error / failure           |
+                  |                           | failure
+                  v                           v
+              +--------+<---------------------+
+              | FAILED |
+              +--------+
+                  |
+                  | rollback
+                  v
+              +---------+
+              | ABORTED |
+              +---------+
+
+ COMMITTED and ABORTED are the terminal (terminated) states.
+
+STATES
+ 1) ACTIVE - initial state. The transaction is executing its read / write
+    operations. Every transaction starts here.
+
+ 2) PARTIALLY COMMITTED - the last statement has been executed, but the changes
+    are still in main memory and are not yet stored permanently.
+
+ 3) COMMITTED - the transaction has completed successfully and all its changes
+    are permanently stored in the database. It cannot be undone.
+
+ 4) FAILED - normal execution cannot continue because of a hardware, software
+    or logical error (or a system failure). It can be reached from the Active
+    or the Partially committed state.
+
+ 5) ABORTED - the transaction is rolled back and the database is restored to
+    the state before the transaction began. The DBMS may then restart the
+    transaction (if the failure was hardware/software) or kill it (if the
+    error is logical).
+
+ACID PROPERTIES (which every transaction must satisfy)
+ A - Atomicity   : all operations are done or none.
+ C - Consistency : the database moves from one valid state to another.
+ I - Isolation   : concurrent transactions do not affect each other.
+ D - Durability  : committed changes are permanent, even after a failure.
+
+==============================================================================
+ END
+==============================================================================
